@@ -1,0 +1,53 @@
+/* Telegram Sidebar Plugin Styles */
+
+.telegram-sidebar-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+	padding: 0;
+	margin: 0;
+}
+
+.telegram-sidebar-webview {
+	width: 100%;
+	height: 100%;
+	border: none;
+	flex: 1;
+}
+
+.telegram-sidebar-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	padding: 20px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.telegram-sidebar-error h3 {
+	margin-bottom: 8px;
+	color: var(--text-normal);
+}
+
+.telegram-sidebar-error p {
+	margin-bottom: 12px;
+	font-size: 13px;
+}
+
+.telegram-sidebar-error button {
+	cursor: pointer;
+	padding: 6px 16px;
+	border-radius: 4px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	font-size: 13px;
+}
+
+.telegram-sidebar-error button:hover {
+	background: var(--interactive-accent-hover);
+}

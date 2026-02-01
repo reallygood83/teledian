@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-telegram-sidebar",
+  "name": "Telegram Sidebar",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Embed Telegram Web in Obsidian sidebar. Chat with bots and contacts without leaving your vault.",
+  "author": "reallygood83",
+  "authorUrl": "https://github.com/reallygood83",
+  "isDesktopOnly": true
+}
