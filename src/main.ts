@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
 import { VIEW_TYPE_TELEGRAM } from "./constants";
 import { TelegramView } from "./TelegramView";
 import {
@@ -15,12 +15,6 @@ export default class TelegramSidebarPlugin extends Plugin {
 
 		this.registerView(VIEW_TYPE_TELEGRAM, (leaf: WorkspaceLeaf) => {
 			return new TelegramView(leaf, this);
-		});
-
-		this.addCommand({
-			id: "send-note-path-to-telegram",
-			name: "Send Current Note Path to Telegram",
-			callback: () => this.sendNotePathToTelegram(),
 		});
 
 		this.addRibbonIcon("send", "Open Telegram Sidebar", () => {
@@ -49,6 +43,64 @@ export default class TelegramSidebarPlugin extends Plugin {
 				} else {
 					this.activateView();
 				}
+			},
+		});
+
+		this.addCommand({
+			id: "send-note-path-to-telegram",
+			name: "Send Current Note Path to Telegram",
+			callback: () => this.sendNotePathToTelegram(),
+		});
+
+		this.addCommand({
+			id: "send-selection-to-telegram",
+			name: "Send Selected Text to Telegram",
+			editorCallback: (editor) => {
+				const selectedText = editor.getSelection();
+				if (!selectedText) {
+					new Notice("No text selected");
+					return;
+				}
+				const view = this.getActiveView();
+				if (view) {
+					view.insertTextToChat(selectedText);
+					new Notice("Text sent to Telegram input");
+				} else {
+					new Notice("Telegram sidebar is not open");
+				}
+			},
+		});
+
+		this.addCommand({
+			id: "save-telegram-selection-to-note",
+			name: "Save Telegram Selection to Note",
+			callback: async () => {
+				const telegramView = this.getActiveView();
+				if (!telegramView) {
+					new Notice("Telegram sidebar is not open");
+					return;
+				}
+
+				const selectedText = await telegramView.getSelectedText();
+				if (!selectedText) {
+					new Notice("No text selected in Telegram");
+					return;
+				}
+
+				const markdownLeaf = this.app.workspace.getLeavesOfType("markdown");
+				const activeMarkdownLeaf = markdownLeaf.find(
+					(leaf) => leaf.view instanceof MarkdownView
+				);
+
+				if (!activeMarkdownLeaf) {
+					new Notice("No active note to save to");
+					return;
+				}
+
+				const editor = (activeMarkdownLeaf.view as MarkdownView).editor;
+				const cursor = editor.getCursor();
+				editor.replaceRange(`\n${selectedText}\n`, cursor);
+				new Notice("Telegram text saved to note");
 			},
 		});
 

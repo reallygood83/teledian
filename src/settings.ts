@@ -1,11 +1,18 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type TelegramSidebarPlugin from "./main";
 
+export interface BotTab {
+	name: string;
+	username: string;
+}
+
 export interface TelegramSidebarSettings {
 	telegramUsername: string;
 	webVersion: "k" | "a";
 	panelSide: "left" | "right";
 	autoOpen: boolean;
+	customCSS: string;
+	botTabs: BotTab[];
 }
 
 export const DEFAULT_SETTINGS: TelegramSidebarSettings = {
@@ -13,6 +20,8 @@ export const DEFAULT_SETTINGS: TelegramSidebarSettings = {
 	webVersion: "k",
 	panelSide: "right",
 	autoOpen: false,
+	customCSS: "",
+	botTabs: [],
 };
 
 export class TelegramSidebarSettingTab extends PluginSettingTab {
@@ -83,5 +92,69 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		containerEl.createEl("h2", { text: "Custom CSS" });
+
+		new Setting(containerEl)
+			.setName("Custom CSS for Telegram Web")
+			.setDesc("CSS injected into Telegram Web on load. Use to customize appearance, hide elements, or match your Obsidian theme.")
+			.addTextArea((textarea) => {
+				textarea.inputEl.rows = 10;
+				textarea.inputEl.cols = 50;
+				textarea.inputEl.addClass("telegram-sidebar-css-textarea");
+				textarea
+					.setPlaceholder("e.g.\nbody { background: #1e1e1e !important; }\n.sidebar { display: none !important; }")
+					.setValue(this.plugin.settings.customCSS)
+					.onChange(async (value) => {
+						this.plugin.settings.customCSS = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		containerEl.createEl("h2", { text: "Bot Tabs" });
+
+		containerEl.createEl("p", {
+			text: "Add multiple bots/chats as tabs. Switch between them in the sidebar.",
+			cls: "setting-item-description",
+		});
+
+		this.plugin.settings.botTabs.forEach((tab, index) => {
+			const s = new Setting(containerEl)
+				.setName(`Tab ${index + 1}`)
+				.addText((text) =>
+					text
+						.setPlaceholder("Display name")
+						.setValue(tab.name)
+						.onChange(async (value) => {
+							this.plugin.settings.botTabs[index].name = value;
+							await this.plugin.saveSettings();
+						})
+				)
+				.addText((text) =>
+					text
+						.setPlaceholder("username (without @)")
+						.setValue(tab.username)
+						.onChange(async (value) => {
+							this.plugin.settings.botTabs[index].username = value.trim().replace(/^@/, "");
+							await this.plugin.saveSettings();
+						})
+				)
+				.addExtraButton((btn) =>
+					btn.setIcon("trash").setTooltip("Remove tab").onClick(async () => {
+						this.plugin.settings.botTabs.splice(index, 1);
+						await this.plugin.saveSettings();
+						this.display();
+					})
+				);
+			s.infoEl.remove();
+		});
+
+		new Setting(containerEl).addButton((btn) =>
+			btn.setButtonText("Add Tab").setCta().onClick(async () => {
+				this.plugin.settings.botTabs.push({ name: "", username: "" });
+				await this.plugin.saveSettings();
+				this.display();
+			})
+		);
 	}
 }

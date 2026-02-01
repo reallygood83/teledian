@@ -39,7 +39,10 @@ var import_obsidian = require("obsidian");
 var TelegramView = class extends import_obsidian.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
-    this.webviewEl = null;
+    this.tabBarEl = null;
+    this.webviewContainerEl = null;
+    this.webviews = /* @__PURE__ */ new Map();
+    this.activeTabId = "default";
     this.plugin = plugin;
   }
   getViewType() {
@@ -54,60 +57,135 @@ var TelegramView = class extends import_obsidian.ItemView {
   async onOpen() {
     this.contentEl.empty();
     this.contentEl.addClass("telegram-sidebar-container");
-    this.createWebview();
+    this.tabBarEl = this.contentEl.createDiv({ cls: "telegram-sidebar-tab-bar" });
+    this.webviewContainerEl = this.contentEl.createDiv({ cls: "telegram-sidebar-webview-container" });
+    this.buildTabs();
   }
   async onClose() {
-    this.webviewEl = null;
+    this.webviews.clear();
+    this.tabBarEl = null;
+    this.webviewContainerEl = null;
   }
-  createWebview() {
-    const doc = this.contentEl.doc;
-    this.webviewEl = doc.createElement("webview");
-    this.webviewEl.setAttribute("src", this.buildUrl());
-    this.webviewEl.setAttribute("allowpopups", "");
-    this.webviewEl.setAttribute("partition", `persist:telegram-sidebar-${this.app.appId}`);
-    this.webviewEl.addClass("telegram-sidebar-webview");
-    this.webviewEl.addEventListener("did-fail-load", (event) => {
-      if (event.errorCode !== -3) {
-        console.error("Telegram Sidebar: Failed to load", event.errorDescription);
-        this.showError(event.errorDescription);
+  buildTabs() {
+    var _a;
+    if (!this.tabBarEl || !this.webviewContainerEl)
+      return;
+    this.tabBarEl.empty();
+    this.webviewContainerEl.empty();
+    this.webviews.clear();
+    const tabs = [];
+    const defaultUsername = this.plugin.settings.telegramUsername;
+    tabs.push({
+      id: "default",
+      name: defaultUsername || "Telegram",
+      username: defaultUsername
+    });
+    this.plugin.settings.botTabs.forEach((bot, i) => {
+      if (bot.username) {
+        tabs.push({
+          id: `tab-${i}`,
+          name: bot.name || bot.username,
+          username: bot.username
+        });
       }
     });
-    this.webviewEl.addEventListener("new-window", (event) => {
+    const hasTabs = tabs.length > 1;
+    this.tabBarEl.toggleClass("telegram-sidebar-tab-bar-hidden", !hasTabs);
+    tabs.forEach((tab) => {
+      const tabBtn = this.tabBarEl.createEl("button", {
+        text: tab.name,
+        cls: "telegram-sidebar-tab-btn"
+      });
+      tabBtn.dataset.tabId = tab.id;
+      tabBtn.addEventListener("click", () => this.switchTab(tab.id));
+      const webviewEl = this.createWebview(tab.username);
+      this.webviewContainerEl.appendChild(webviewEl);
+      this.webviews.set(tab.id, {
+        el: webviewEl,
+        username: tab.username,
+        name: tab.name
+      });
+    });
+    this.activeTabId = ((_a = tabs[0]) == null ? void 0 : _a.id) || "default";
+    this.switchTab(this.activeTabId);
+  }
+  refreshTabs() {
+    this.buildTabs();
+  }
+  switchTab(tabId) {
+    var _a;
+    this.activeTabId = tabId;
+    this.webviews.forEach((entry, id) => {
+      entry.el.toggleClass("telegram-sidebar-webview-active", id === tabId);
+      entry.el.toggleClass("telegram-sidebar-webview-hidden", id !== tabId);
+    });
+    (_a = this.tabBarEl) == null ? void 0 : _a.querySelectorAll(".telegram-sidebar-tab-btn").forEach((btn) => {
+      const el = btn;
+      el.toggleClass("telegram-sidebar-tab-btn-active", el.dataset.tabId === tabId);
+    });
+  }
+  createWebview(username) {
+    const doc = this.contentEl.doc;
+    const webviewEl = doc.createElement("webview");
+    const url = this.buildUrlForUsername(username);
+    webviewEl.setAttribute("src", url);
+    webviewEl.setAttribute("allowpopups", "");
+    webviewEl.setAttribute("partition", `persist:telegram-sidebar-${this.app.appId}`);
+    webviewEl.addClass("telegram-sidebar-webview");
+    webviewEl.addEventListener("did-fail-load", (event) => {
+      if (event.errorCode !== -3) {
+        console.error("Telegram Sidebar: Failed to load", event.errorDescription);
+      }
+    });
+    webviewEl.addEventListener("dom-ready", () => {
+      const css = this.plugin.settings.customCSS;
+      if (css) {
+        webviewEl.insertCSS(css);
+      }
+    });
+    webviewEl.addEventListener("new-window", (event) => {
       if (event.url) {
         window.open(event.url);
       }
     });
-    this.webviewEl.addEventListener("destroyed", () => {
-      var _a;
+    webviewEl.addEventListener("destroyed", () => {
       if (doc !== this.contentEl.doc) {
-        (_a = this.webviewEl) == null ? void 0 : _a.detach();
-        this.createWebview();
+        webviewEl.detach();
+        this.buildTabs();
       }
     });
-    this.contentEl.appendChild(this.webviewEl);
+    return webviewEl;
   }
-  buildUrl() {
+  getActiveWebview() {
+    const entry = this.webviews.get(this.activeTabId);
+    return (entry == null ? void 0 : entry.el) || null;
+  }
+  buildUrlForUsername(username) {
     const base = this.plugin.settings.webVersion === "a" ? TELEGRAM_WEB_A : TELEGRAM_WEB_K;
-    const username = this.plugin.settings.telegramUsername;
     if (!username) {
       return base;
     }
     return `${base}#@${username}`;
   }
+  buildUrl() {
+    return this.buildUrlForUsername(this.plugin.settings.telegramUsername);
+  }
   reload() {
-    if (this.webviewEl) {
-      this.webviewEl.reload();
+    const webview = this.getActiveWebview();
+    if (webview) {
+      webview.reload();
     }
   }
   navigateToChat(username) {
-    if (this.webviewEl) {
-      const base = this.plugin.settings.webVersion === "a" ? TELEGRAM_WEB_A : TELEGRAM_WEB_K;
-      const url = username ? `${base}#@${username}` : base;
-      this.webviewEl.loadURL(url);
+    const webview = this.getActiveWebview();
+    if (webview) {
+      const url = this.buildUrlForUsername(username);
+      webview.loadURL(url);
     }
   }
   async insertTextToChat(text) {
-    if (!this.webviewEl)
+    const webview = this.getActiveWebview();
+    if (!webview)
       return;
     const escaped = text.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
     const isVersionA = this.plugin.settings.webVersion === "a";
@@ -122,20 +200,21 @@ var TelegramView = class extends import_obsidian.ItemView {
 				return true;
 			})();
 		`;
-    this.webviewEl.executeJavaScript(js, true);
+    webview.executeJavaScript(js, true);
   }
-  showError(errorDescription) {
-    const errorEl = this.contentEl.createDiv({ cls: "telegram-sidebar-error" });
-    errorEl.createEl("h3", { text: "Failed to load Telegram Web" });
-    errorEl.createEl("p", { text: errorDescription || "Unknown error" });
-    errorEl.createEl("p", {
-      text: "Please check your internet connection and try reloading."
-    });
-    const reloadBtn = errorEl.createEl("button", { text: "Reload" });
-    reloadBtn.addEventListener("click", () => {
-      errorEl.remove();
-      this.reload();
-    });
+  async getSelectedText() {
+    const webview = this.getActiveWebview();
+    if (!webview)
+      return "";
+    try {
+      const text = await webview.executeJavaScript(
+        "window.getSelection().toString()",
+        true
+      );
+      return text || "";
+    } catch (e) {
+      return "";
+    }
   }
 };
 
@@ -145,7 +224,9 @@ var DEFAULT_SETTINGS = {
   telegramUsername: "",
   webVersion: "k",
   panelSide: "right",
-  autoOpen: false
+  autoOpen: false,
+  customCSS: "",
+  botTabs: []
 };
 var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
@@ -182,6 +263,48 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
         await this.plugin.saveSettings();
       })
     );
+    containerEl.createEl("h2", { text: "Custom CSS" });
+    new import_obsidian2.Setting(containerEl).setName("Custom CSS for Telegram Web").setDesc("CSS injected into Telegram Web on load. Use to customize appearance, hide elements, or match your Obsidian theme.").addTextArea((textarea) => {
+      textarea.inputEl.rows = 10;
+      textarea.inputEl.cols = 50;
+      textarea.inputEl.addClass("telegram-sidebar-css-textarea");
+      textarea.setPlaceholder("e.g.\nbody { background: #1e1e1e !important; }\n.sidebar { display: none !important; }").setValue(this.plugin.settings.customCSS).onChange(async (value) => {
+        this.plugin.settings.customCSS = value;
+        await this.plugin.saveSettings();
+      });
+    });
+    containerEl.createEl("h2", { text: "Bot Tabs" });
+    containerEl.createEl("p", {
+      text: "Add multiple bots/chats as tabs. Switch between them in the sidebar.",
+      cls: "setting-item-description"
+    });
+    this.plugin.settings.botTabs.forEach((tab, index) => {
+      const s = new import_obsidian2.Setting(containerEl).setName(`Tab ${index + 1}`).addText(
+        (text) => text.setPlaceholder("Display name").setValue(tab.name).onChange(async (value) => {
+          this.plugin.settings.botTabs[index].name = value;
+          await this.plugin.saveSettings();
+        })
+      ).addText(
+        (text) => text.setPlaceholder("username (without @)").setValue(tab.username).onChange(async (value) => {
+          this.plugin.settings.botTabs[index].username = value.trim().replace(/^@/, "");
+          await this.plugin.saveSettings();
+        })
+      ).addExtraButton(
+        (btn) => btn.setIcon("trash").setTooltip("Remove tab").onClick(async () => {
+          this.plugin.settings.botTabs.splice(index, 1);
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+      s.infoEl.remove();
+    });
+    new import_obsidian2.Setting(containerEl).addButton(
+      (btn) => btn.setButtonText("Add Tab").setCta().onClick(async () => {
+        this.plugin.settings.botTabs.push({ name: "", username: "" });
+        await this.plugin.saveSettings();
+        this.display();
+      })
+    );
   }
 };
 
@@ -195,11 +318,6 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     await this.loadSettings();
     this.registerView(VIEW_TYPE_TELEGRAM, (leaf) => {
       return new TelegramView(leaf, this);
-    });
-    this.addCommand({
-      id: "send-note-path-to-telegram",
-      name: "Send Current Note Path to Telegram",
-      callback: () => this.sendNotePathToTelegram()
     });
     this.addRibbonIcon("send", "Open Telegram Sidebar", () => {
       this.activateView();
@@ -224,6 +342,59 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
         } else {
           this.activateView();
         }
+      }
+    });
+    this.addCommand({
+      id: "send-note-path-to-telegram",
+      name: "Send Current Note Path to Telegram",
+      callback: () => this.sendNotePathToTelegram()
+    });
+    this.addCommand({
+      id: "send-selection-to-telegram",
+      name: "Send Selected Text to Telegram",
+      editorCallback: (editor) => {
+        const selectedText = editor.getSelection();
+        if (!selectedText) {
+          new import_obsidian3.Notice("No text selected");
+          return;
+        }
+        const view = this.getActiveView();
+        if (view) {
+          view.insertTextToChat(selectedText);
+          new import_obsidian3.Notice("Text sent to Telegram input");
+        } else {
+          new import_obsidian3.Notice("Telegram sidebar is not open");
+        }
+      }
+    });
+    this.addCommand({
+      id: "save-telegram-selection-to-note",
+      name: "Save Telegram Selection to Note",
+      callback: async () => {
+        const telegramView = this.getActiveView();
+        if (!telegramView) {
+          new import_obsidian3.Notice("Telegram sidebar is not open");
+          return;
+        }
+        const selectedText = await telegramView.getSelectedText();
+        if (!selectedText) {
+          new import_obsidian3.Notice("No text selected in Telegram");
+          return;
+        }
+        const markdownLeaf = this.app.workspace.getLeavesOfType("markdown");
+        const activeMarkdownLeaf = markdownLeaf.find(
+          (leaf) => leaf.view instanceof import_obsidian3.MarkdownView
+        );
+        if (!activeMarkdownLeaf) {
+          new import_obsidian3.Notice("No active note to save to");
+          return;
+        }
+        const editor = activeMarkdownLeaf.view.editor;
+        const cursor = editor.getCursor();
+        editor.replaceRange(`
+${selectedText}
+`, cursor);
+        new import_obsidian3.Notice("Telegram text saved to note");
       }
     });
     this.addSettingTab(new TelegramSidebarSettingTab(this.app, this));
