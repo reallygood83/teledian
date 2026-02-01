@@ -106,6 +106,24 @@ var TelegramView = class extends import_obsidian.ItemView {
       this.webviewEl.loadURL(url);
     }
   }
+  async insertTextToChat(text) {
+    if (!this.webviewEl)
+      return;
+    const escaped = text.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
+    const isVersionA = this.plugin.settings.webVersion === "a";
+    const selector = isVersionA ? "#editable-message-text" : ".input-message-input";
+    const js = `
+			(function() {
+				var el = document.querySelector('${selector}');
+				if (!el) return false;
+				el.focus();
+				document.execCommand('insertText', false, '${escaped}');
+				el.dispatchEvent(new Event('input', { bubbles: true }));
+				return true;
+			})();
+		`;
+    this.webviewEl.executeJavaScript(js, true);
+  }
   showError(errorDescription) {
     const errorEl = this.contentEl.createDiv({ cls: "telegram-sidebar-error" });
     errorEl.createEl("h3", { text: "Failed to load Telegram Web" });
@@ -178,6 +196,11 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     this.registerView(VIEW_TYPE_TELEGRAM, (leaf) => {
       return new TelegramView(leaf, this);
     });
+    this.addCommand({
+      id: "send-note-path-to-telegram",
+      name: "Send Current Note Path to Telegram",
+      callback: () => this.sendNotePathToTelegram()
+    });
     this.addRibbonIcon("send", "Open Telegram Sidebar", () => {
       this.activateView();
     });
@@ -241,6 +264,23 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     if (view) {
       view.reload();
     }
+  }
+  async sendNotePathToTelegram() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile)
+      return;
+    const vaultBasePath = this.app.vault.adapter.basePath;
+    const absolutePath = `${vaultBasePath}/${activeFile.path}`;
+    const view = this.getActiveView();
+    if (!view) {
+      await this.activateView();
+      const newView = this.getActiveView();
+      if (newView) {
+        setTimeout(() => newView.insertTextToChat(absolutePath), 1e3);
+      }
+      return;
+    }
+    view.insertTextToChat(absolutePath);
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

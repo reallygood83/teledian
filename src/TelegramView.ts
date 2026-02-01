@@ -92,6 +92,30 @@ export class TelegramView extends ItemView {
 		}
 	}
 
+	async insertTextToChat(text: string): Promise<void> {
+		if (!this.webviewEl) return;
+		const escaped = text.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n");
+		const isVersionA = this.plugin.settings.webVersion === "a";
+
+		// Telegram K: .input-message-input[contenteditable]
+		// Telegram A: #editable-message-text[contenteditable]
+		const selector = isVersionA
+			? "#editable-message-text"
+			: ".input-message-input";
+
+		const js = `
+			(function() {
+				var el = document.querySelector('${selector}');
+				if (!el) return false;
+				el.focus();
+				document.execCommand('insertText', false, '${escaped}');
+				el.dispatchEvent(new Event('input', { bubbles: true }));
+				return true;
+			})();
+		`;
+		(this.webviewEl as any).executeJavaScript(js, true);
+	}
+
 	private showError(errorDescription: string): void {
 		const errorEl = this.contentEl.createDiv({ cls: "telegram-sidebar-error" });
 		errorEl.createEl("h3", { text: "Failed to load Telegram Web" });

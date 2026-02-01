@@ -17,6 +17,12 @@ export default class TelegramSidebarPlugin extends Plugin {
 			return new TelegramView(leaf, this);
 		});
 
+		this.addCommand({
+			id: "send-note-path-to-telegram",
+			name: "Send Current Note Path to Telegram",
+			callback: () => this.sendNotePathToTelegram(),
+		});
+
 		this.addRibbonIcon("send", "Open Telegram Sidebar", () => {
 			this.activateView();
 		});
@@ -95,6 +101,25 @@ export default class TelegramSidebarPlugin extends Plugin {
 		if (view) {
 			view.reload();
 		}
+	}
+
+	async sendNotePathToTelegram(): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) return;
+
+		const vaultBasePath = (this.app.vault.adapter as any).basePath;
+		const absolutePath = `${vaultBasePath}/${activeFile.path}`;
+
+		const view = this.getActiveView();
+		if (!view) {
+			await this.activateView();
+			const newView = this.getActiveView();
+			if (newView) {
+				setTimeout(() => newView.insertTextToChat(absolutePath), 1000);
+			}
+			return;
+		}
+		view.insertTextToChat(absolutePath);
 	}
 
 	async loadSettings(): Promise<void> {
