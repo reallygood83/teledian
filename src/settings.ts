@@ -11,7 +11,6 @@ export interface TelegramSidebarSettings {
 	webVersion: "k" | "a";
 	panelSide: "left" | "right";
 	autoOpen: boolean;
-	customCSS: string;
 	botTabs: BotTab[];
 }
 
@@ -20,7 +19,6 @@ export const DEFAULT_SETTINGS: TelegramSidebarSettings = {
 	webVersion: "k",
 	panelSide: "right",
 	autoOpen: false,
-	customCSS: "",
 	botTabs: [],
 };
 
@@ -92,24 +90,6 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
-
-		containerEl.createEl("h2", { text: "Custom CSS" });
-
-		new Setting(containerEl)
-			.setName("Custom CSS for Telegram Web")
-			.setDesc("CSS injected into Telegram Web on load. Use to customize appearance, hide elements, or match your Obsidian theme.")
-			.addTextArea((textarea) => {
-				textarea.inputEl.rows = 10;
-				textarea.inputEl.cols = 50;
-				textarea.inputEl.addClass("telegram-sidebar-css-textarea");
-				textarea
-					.setPlaceholder("e.g.\nbody { background: #1e1e1e !important; }\n.sidebar { display: none !important; }")
-					.setValue(this.plugin.settings.customCSS)
-					.onChange(async (value) => {
-						this.plugin.settings.customCSS = value;
-						await this.plugin.saveSettings();
-					});
-			});
 
 		containerEl.createEl("h2", { text: "Bot Tabs" });
 

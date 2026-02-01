@@ -71,12 +71,6 @@
 	visibility: hidden;
 }
 
-.telegram-sidebar-css-textarea {
-	width: 100% !important;
-	font-family: var(--font-monospace);
-	font-size: 12px;
-}
-
 .telegram-sidebar-error {
 	display: flex;
 	flex-direction: column;

@@ -137,20 +137,6 @@ var TelegramView = class extends import_obsidian.ItemView {
         console.error("Telegram Sidebar: Failed to load", event.errorDescription);
       }
     });
-    const injectCSS = () => {
-      const css = this.plugin.settings.customCSS;
-      if (css) {
-        webviewEl.insertCSS(css);
-      }
-    };
-    webviewEl.addEventListener("dom-ready", () => {
-      injectCSS();
-      setTimeout(injectCSS, 1500);
-      setTimeout(injectCSS, 4e3);
-    });
-    webviewEl.addEventListener("did-navigate-in-page", () => {
-      setTimeout(injectCSS, 500);
-    });
     webviewEl.addEventListener("new-window", (event) => {
       if (event.url) {
         window.open(event.url);
@@ -233,7 +219,6 @@ var DEFAULT_SETTINGS = {
   webVersion: "k",
   panelSide: "right",
   autoOpen: false,
-  customCSS: "",
   botTabs: []
 };
 var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
@@ -271,16 +256,6 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h2", { text: "Custom CSS" });
-    new import_obsidian2.Setting(containerEl).setName("Custom CSS for Telegram Web").setDesc("CSS injected into Telegram Web on load. Use to customize appearance, hide elements, or match your Obsidian theme.").addTextArea((textarea) => {
-      textarea.inputEl.rows = 10;
-      textarea.inputEl.cols = 50;
-      textarea.inputEl.addClass("telegram-sidebar-css-textarea");
-      textarea.setPlaceholder("e.g.\nbody { background: #1e1e1e !important; }\n.sidebar { display: none !important; }").setValue(this.plugin.settings.customCSS).onChange(async (value) => {
-        this.plugin.settings.customCSS = value;
-        await this.plugin.saveSettings();
-      });
-    });
     containerEl.createEl("h2", { text: "Bot Tabs" });
     containerEl.createEl("p", {
       text: "Add multiple bots/chats as tabs. Switch between them in the sidebar.",
