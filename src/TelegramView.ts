@@ -136,11 +136,21 @@ export class TelegramView extends ItemView {
 			}
 		});
 
-		webviewEl.addEventListener("dom-ready" as any, () => {
+		const injectCSS = () => {
 			const css = this.plugin.settings.customCSS;
 			if (css) {
 				(webviewEl as any).insertCSS(css);
 			}
+		};
+
+		webviewEl.addEventListener("dom-ready" as any, () => {
+			injectCSS();
+			setTimeout(injectCSS, 1500);
+			setTimeout(injectCSS, 4000);
+		});
+
+		webviewEl.addEventListener("did-navigate-in-page" as any, () => {
+			setTimeout(injectCSS, 500);
 		});
 
 		webviewEl.addEventListener("new-window" as any, (event: any) => {

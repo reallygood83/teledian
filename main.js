@@ -137,11 +137,19 @@ var TelegramView = class extends import_obsidian.ItemView {
         console.error("Telegram Sidebar: Failed to load", event.errorDescription);
       }
     });
-    webviewEl.addEventListener("dom-ready", () => {
+    const injectCSS = () => {
       const css = this.plugin.settings.customCSS;
       if (css) {
         webviewEl.insertCSS(css);
       }
+    };
+    webviewEl.addEventListener("dom-ready", () => {
+      injectCSS();
+      setTimeout(injectCSS, 1500);
+      setTimeout(injectCSS, 4e3);
+    });
+    webviewEl.addEventListener("did-navigate-in-page", () => {
+      setTimeout(injectCSS, 500);
     });
     webviewEl.addEventListener("new-window", (event) => {
       if (event.url) {
