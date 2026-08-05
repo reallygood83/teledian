@@ -1,7 +1,7 @@
 {
   "name": "telegram-sidebar",
-  "version": "1.3.2",
-  "description": "Embed Telegram Web in Obsidian sidebar",
+  "version": "1.3.3",
+  "description": "Embed Telegram Web in the sidebar",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
