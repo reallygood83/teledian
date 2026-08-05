@@ -54,11 +54,15 @@ Embed **Telegram Web** directly in your Obsidian sidebar. Chat with bots, contac
 - **Obsidian Desktop** (Windows, macOS, Linux)
 - Not compatible with Obsidian Mobile (uses Electron webview)
 
+## Network Use
+
+This plugin loads **Telegram Web** (`https://web.telegram.org`) directly inside an embedded Electron `<webview>` in the Obsidian sidebar. No data is sent to any server operated by this plugin — your Telegram session, messages, and login are handled entirely by Telegram's own web client and are subject to [Telegram's Privacy Policy](https://telegram.org/privacy). The plugin only reads/writes local plugin settings (`data.json`) inside your vault.
+
 ## Development
 
 ```bash
 git clone https://github.com/reallygood83/teledian.git
-cd obsidian-telegram-sidebar
+cd teledian
 npm install
 npm run dev     # watch mode
 npm run build   # production build

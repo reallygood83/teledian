@@ -229,8 +229,7 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Telegram Sidebar Settings" });
-    new import_obsidian2.Setting(containerEl).setName("Telegram Username").setDesc(
+    new import_obsidian2.Setting(containerEl).setName("Telegram username").setDesc(
       "Enter the username of the bot, user, or channel to open on launch (without @). Leave empty to show the main Telegram screen."
     ).addText(
       (text) => text.setPlaceholder("e.g. moltbot").setValue(this.plugin.settings.telegramUsername).onChange(async (value) => {
@@ -238,29 +237,25 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Telegram Web Version").setDesc("K version is lightweight. A version is React-based with modern UI.").addDropdown(
+    new import_obsidian2.Setting(containerEl).setName("Telegram web version").setDesc("K version is lightweight. A version is React-based with modern UI.").addDropdown(
       (dropdown) => dropdown.addOption("k", "K (Lightweight)").addOption("a", "A (Modern React)").setValue(this.plugin.settings.webVersion).onChange(async (value) => {
         this.plugin.settings.webVersion = value;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Panel Side").setDesc("Which side of the workspace to open the Telegram panel.").addDropdown(
+    new import_obsidian2.Setting(containerEl).setName("Panel side").setDesc("Which side of the workspace to open the Telegram panel.").addDropdown(
       (dropdown) => dropdown.addOption("right", "Right").addOption("left", "Left").setValue(this.plugin.settings.panelSide).onChange(async (value) => {
         this.plugin.settings.panelSide = value;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Auto Open on Startup").setDesc("Automatically open the Telegram sidebar when Obsidian starts.").addToggle(
+    new import_obsidian2.Setting(containerEl).setName("Auto open on startup").setDesc("Automatically open the Telegram sidebar when Obsidian starts.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.autoOpen).onChange(async (value) => {
         this.plugin.settings.autoOpen = value;
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h2", { text: "Bot Tabs" });
-    containerEl.createEl("p", {
-      text: "Add multiple bots/chats as tabs. Switch between them in the sidebar.",
-      cls: "setting-item-description"
-    });
+    new import_obsidian2.Setting(containerEl).setName("Bot tabs").setDesc("Add multiple bots/chats as tabs. Switch between them in the sidebar.").setHeading();
     this.plugin.settings.botTabs.forEach((tab, index) => {
       const s = new import_obsidian2.Setting(containerEl).setName(`Tab ${index + 1}`).addText(
         (text) => text.setPlaceholder("Display name").setValue(tab.name).onChange(async (value) => {
@@ -353,31 +348,27 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     this.addCommand({
       id: "save-telegram-selection-to-note",
       name: "Save Telegram Selection to Note",
-      callback: async () => {
+      checkCallback: (checking) => {
         const telegramView = this.getActiveView();
-        if (!telegramView) {
-          new import_obsidian3.Notice("Telegram sidebar is not open");
-          return;
-        }
-        const selectedText = await telegramView.getSelectedText();
-        if (!selectedText) {
-          new import_obsidian3.Notice("No text selected in Telegram");
-          return;
-        }
-        const markdownLeaf = this.app.workspace.getLeavesOfType("markdown");
-        const activeMarkdownLeaf = markdownLeaf.find(
-          (leaf) => leaf.view instanceof import_obsidian3.MarkdownView
-        );
-        if (!activeMarkdownLeaf) {
-          new import_obsidian3.Notice("No active note to save to");
-          return;
-        }
-        const editor = activeMarkdownLeaf.view.editor;
-        const cursor = editor.getCursor();
-        editor.replaceRange(`
+        const activeMarkdownLeaf = this.app.workspace.getLeavesOfType("markdown").find((leaf) => leaf.view instanceof import_obsidian3.MarkdownView);
+        if (!telegramView || !activeMarkdownLeaf)
+          return false;
+        if (checking)
+          return true;
+        (async () => {
+          const selectedText = await telegramView.getSelectedText();
+          if (!selectedText) {
+            new import_obsidian3.Notice("No text selected in Telegram");
+            return;
+          }
+          const editor = activeMarkdownLeaf.view.editor;
+          const cursor = editor.getCursor();
+          editor.replaceRange(`
 ${selectedText}
 `, cursor);
-        new import_obsidian3.Notice("Telegram text saved to note");
+          new import_obsidian3.Notice("Telegram text saved to note");
+        })();
+        return true;
       }
     });
     this.addSettingTab(new TelegramSidebarSettingTab(this.app, this));
@@ -388,7 +379,6 @@ ${selectedText}
     }
   }
   async onunload() {
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_TELEGRAM);
   }
   async activateView() {
     const { workspace } = this.app;

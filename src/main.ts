@@ -74,33 +74,28 @@ export default class TelegramSidebarPlugin extends Plugin {
 		this.addCommand({
 			id: "save-telegram-selection-to-note",
 			name: "Save Telegram Selection to Note",
-			callback: async () => {
+			checkCallback: (checking) => {
 				const telegramView = this.getActiveView();
-				if (!telegramView) {
-					new Notice("Telegram sidebar is not open");
-					return;
-				}
+				const activeMarkdownLeaf = this.app.workspace
+					.getLeavesOfType("markdown")
+					.find((leaf) => leaf.view instanceof MarkdownView);
 
-				const selectedText = await telegramView.getSelectedText();
-				if (!selectedText) {
-					new Notice("No text selected in Telegram");
-					return;
-				}
+				if (!telegramView || !activeMarkdownLeaf) return false;
+				if (checking) return true;
 
-				const markdownLeaf = this.app.workspace.getLeavesOfType("markdown");
-				const activeMarkdownLeaf = markdownLeaf.find(
-					(leaf) => leaf.view instanceof MarkdownView
-				);
+				(async () => {
+					const selectedText = await telegramView.getSelectedText();
+					if (!selectedText) {
+						new Notice("No text selected in Telegram");
+						return;
+					}
 
-				if (!activeMarkdownLeaf) {
-					new Notice("No active note to save to");
-					return;
-				}
-
-				const editor = (activeMarkdownLeaf.view as MarkdownView).editor;
-				const cursor = editor.getCursor();
-				editor.replaceRange(`\n${selectedText}\n`, cursor);
-				new Notice("Telegram text saved to note");
+					const editor = (activeMarkdownLeaf.view as MarkdownView).editor;
+					const cursor = editor.getCursor();
+					editor.replaceRange(`\n${selectedText}\n`, cursor);
+					new Notice("Telegram text saved to note");
+				})();
+				return true;
 			},
 		});
 
@@ -113,9 +108,7 @@ export default class TelegramSidebarPlugin extends Plugin {
 		}
 	}
 
-	async onunload(): Promise<void> {
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TELEGRAM);
-	}
+	async onunload(): Promise<void> {}
 
 	async activateView(): Promise<void> {
 		const { workspace } = this.app;

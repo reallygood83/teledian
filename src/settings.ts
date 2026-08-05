@@ -34,10 +34,8 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Telegram Sidebar Settings" });
-
 		new Setting(containerEl)
-			.setName("Telegram Username")
+			.setName("Telegram username")
 			.setDesc(
 				"Enter the username of the bot, user, or channel to open on launch (without @). Leave empty to show the main Telegram screen."
 			)
@@ -52,7 +50,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Telegram Web Version")
+			.setName("Telegram web version")
 			.setDesc("K version is lightweight. A version is React-based with modern UI.")
 			.addDropdown((dropdown) =>
 				dropdown
@@ -66,7 +64,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Panel Side")
+			.setName("Panel side")
 			.setDesc("Which side of the workspace to open the Telegram panel.")
 			.addDropdown((dropdown) =>
 				dropdown
@@ -80,7 +78,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Auto Open on Startup")
+			.setName("Auto open on startup")
 			.setDesc("Automatically open the Telegram sidebar when Obsidian starts.")
 			.addToggle((toggle) =>
 				toggle
@@ -91,12 +89,10 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 					})
 			);
 
-		containerEl.createEl("h2", { text: "Bot Tabs" });
-
-		containerEl.createEl("p", {
-			text: "Add multiple bots/chats as tabs. Switch between them in the sidebar.",
-			cls: "setting-item-description",
-		});
+		new Setting(containerEl)
+			.setName("Bot tabs")
+			.setDesc("Add multiple bots/chats as tabs. Switch between them in the sidebar.")
+			.setHeading();
 
 		this.plugin.settings.botTabs.forEach((tab, index) => {
 			const s = new Setting(containerEl)
