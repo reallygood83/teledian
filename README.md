@@ -68,7 +68,7 @@ npm run dev     # watch mode
 npm run build   # production build
 ```
 
-Copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/obsidian-telegram-sidebar/` folder.
+Copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/telegram-sidebar/` folder.
 
 ## License
 

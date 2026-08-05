@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 |------|------|
 | **플러그인 이름** | Telegram Sidebar |
-| **ID** | `obsidian-telegram-sidebar` |
+| **ID** | `telegram-sidebar` |
 | **목적** | Obsidian 사이드바에서 Telegram Web 채팅을 바로 사용 |
 | **배포** | GitHub → BRAT → 추후 Community Plugin 등록 |
 | **라이선스** | MIT |
@@ -52,7 +52,7 @@
 ### 3.1 파일 구조
 
 ```
-obsidian-telegram-sidebar/
+telegram-sidebar/
 ├── src/
 │   ├── main.ts              # 플러그인 엔트리포인트
 │   ├── TelegramView.ts      # ItemView 구현 (webview 렌더링)
@@ -209,7 +209,7 @@ npm run build    # esbuild → main.js 생성
 ### 5.3 BRAT 설치 방법 (사용자용)
 1. Obsidian → Community Plugins → BRAT 설치
 2. BRAT Settings → "Add Beta Plugin"
-3. GitHub URL 입력: `https://github.com/{owner}/obsidian-telegram-sidebar`
+3. GitHub URL 입력: `https://github.com/{owner}/telegram-sidebar`
 4. 설치 완료 → Settings에서 Telegram Username 입력
 5. 사이드바 아이콘 클릭 또는 Command Palette → "Open Telegram Sidebar"
 
@@ -217,7 +217,7 @@ npm run build    # esbuild → main.js 생성
 
 ```json
 {
-  "id": "obsidian-telegram-sidebar",
+  "id": "telegram-sidebar",
   "name": "Telegram Sidebar",
   "version": "1.0.0",
   "minAppVersion": "1.0.0",
