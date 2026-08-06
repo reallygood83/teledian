@@ -130,7 +130,8 @@ var TelegramView = class extends import_obsidian.ItemView {
     const url = this.buildUrlForUsername(username);
     webviewEl.setAttribute("src", url);
     webviewEl.setAttribute("allowpopups", "");
-    webviewEl.setAttribute("partition", `persist:telegram-sidebar-${this.app.appId}`);
+    const appId = this.app.appId;
+    webviewEl.setAttribute("partition", `persist:telegram-sidebar-${appId}`);
     webviewEl.addClass("telegram-sidebar-webview");
     webviewEl.addEventListener("did-fail-load", (event) => {
       if (event.errorCode !== -3) {
@@ -194,7 +195,7 @@ var TelegramView = class extends import_obsidian.ItemView {
 				return true;
 			})();
 		`;
-    webview.executeJavaScript(js, true);
+    await webview.executeJavaScript(js, true);
   }
   async getSelectedText() {
     const webview = this.getActiveWebview();
@@ -205,7 +206,7 @@ var TelegramView = class extends import_obsidian.ItemView {
         "window.getSelection().toString()",
         true
       );
-      return text || "";
+      return typeof text === "string" ? text : "";
     } catch (e) {
       return "";
     }
@@ -232,13 +233,13 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
     new import_obsidian2.Setting(containerEl).setName("Telegram username").setDesc(
       "Enter the username of the bot, user, or channel to open on launch (without @). Leave empty to show the main Telegram screen."
     ).addText(
-      (text) => text.setPlaceholder("e.g. moltbot").setValue(this.plugin.settings.telegramUsername).onChange(async (value) => {
+      (text) => text.setPlaceholder("E.g. Moltbot").setValue(this.plugin.settings.telegramUsername).onChange(async (value) => {
         this.plugin.settings.telegramUsername = value.trim().replace(/^@/, "");
         await this.plugin.saveSettings();
       })
     );
     new import_obsidian2.Setting(containerEl).setName("Telegram web version").setDesc("K version is lightweight. A version is React-based with modern UI.").addDropdown(
-      (dropdown) => dropdown.addOption("k", "K (Lightweight)").addOption("a", "A (Modern React)").setValue(this.plugin.settings.webVersion).onChange(async (value) => {
+      (dropdown) => dropdown.addOption("k", "K (lightweight)").addOption("a", "A (modern React)").setValue(this.plugin.settings.webVersion).onChange(async (value) => {
         this.plugin.settings.webVersion = value;
         await this.plugin.saveSettings();
       })
@@ -263,7 +264,7 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
           await this.plugin.saveSettings();
         })
       ).addText(
-        (text) => text.setPlaceholder("username (without @)").setValue(tab.username).onChange(async (value) => {
+        (text) => text.setPlaceholder("Username (without @)").setValue(tab.username).onChange(async (value) => {
           this.plugin.settings.botTabs[index].username = value.trim().replace(/^@/, "");
           await this.plugin.saveSettings();
         })
@@ -277,7 +278,7 @@ var TelegramSidebarSettingTab = class extends import_obsidian2.PluginSettingTab 
       s.infoEl.remove();
     });
     new import_obsidian2.Setting(containerEl).addButton(
-      (btn) => btn.setButtonText("Add Tab").setCta().onClick(async () => {
+      (btn) => btn.setButtonText("Add tab").setCta().onClick(async () => {
         this.plugin.settings.botTabs.push({ name: "", username: "" });
         await this.plugin.saveSettings();
         this.display();
@@ -297,13 +298,13 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     this.registerView(VIEW_TYPE_TELEGRAM, (leaf) => {
       return new TelegramView(leaf, this);
     });
-    this.addRibbonIcon("send", "Open Telegram Sidebar", () => {
-      this.activateView();
+    this.addRibbonIcon("send", "Open Telegram sidebar", () => {
+      void this.activateView();
     });
     this.addCommand({
-      id: "open-telegram-sidebar",
-      name: "Open Telegram Sidebar",
-      callback: () => this.activateView()
+      id: "open-sidebar",
+      name: "Open sidebar",
+      callback: () => void this.activateView()
     });
     this.addCommand({
       id: "reload-telegram",
@@ -312,24 +313,24 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     });
     this.addCommand({
       id: "go-to-chat",
-      name: "Go to Chat",
+      name: "Go to chat",
       callback: () => {
         const view = this.getActiveView();
         if (view) {
           view.navigateToChat(this.settings.telegramUsername);
         } else {
-          this.activateView();
+          void this.activateView();
         }
       }
     });
     this.addCommand({
       id: "send-note-path-to-telegram",
-      name: "Send Current Note Path to Telegram",
-      callback: () => this.sendNotePathToTelegram()
+      name: "Send current note path to Telegram",
+      callback: () => void this.sendNotePathToTelegram()
     });
     this.addCommand({
       id: "send-selection-to-telegram",
-      name: "Send Selected Text to Telegram",
+      name: "Send selected text to Telegram",
       editorCallback: (editor) => {
         const selectedText = editor.getSelection();
         if (!selectedText) {
@@ -338,7 +339,7 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
         }
         const view = this.getActiveView();
         if (view) {
-          view.insertTextToChat(selectedText);
+          void view.insertTextToChat(selectedText);
           new import_obsidian3.Notice("Text sent to Telegram input");
         } else {
           new import_obsidian3.Notice("Telegram sidebar is not open");
@@ -347,7 +348,7 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
     });
     this.addCommand({
       id: "save-telegram-selection-to-note",
-      name: "Save Telegram Selection to Note",
+      name: "Save Telegram selection to note",
       checkCallback: (checking) => {
         const telegramView = this.getActiveView();
         const activeMarkdownLeaf = this.app.workspace.getLeavesOfType("markdown").find((leaf) => leaf.view instanceof import_obsidian3.MarkdownView);
@@ -355,7 +356,7 @@ var TelegramSidebarPlugin = class extends import_obsidian3.Plugin {
           return false;
         if (checking)
           return true;
-        (async () => {
+        void (async () => {
           const selectedText = await telegramView.getSelectedText();
           if (!selectedText) {
             new import_obsidian3.Notice("No text selected in Telegram");
@@ -374,17 +375,17 @@ ${selectedText}
     this.addSettingTab(new TelegramSidebarSettingTab(this.app, this));
     if (this.settings.autoOpen) {
       this.app.workspace.onLayoutReady(() => {
-        this.activateView();
+        void this.activateView();
       });
     }
   }
-  async onunload() {
+  onunload() {
   }
   async activateView() {
     const { workspace } = this.app;
     const existing = workspace.getLeavesOfType(VIEW_TYPE_TELEGRAM);
     if (existing.length > 0) {
-      workspace.revealLeaf(existing[0]);
+      await workspace.revealLeaf(existing[0]);
       return;
     }
     const leaf = this.settings.panelSide === "left" ? workspace.getLeftLeaf(false) : workspace.getRightLeaf(false);
@@ -393,7 +394,7 @@ ${selectedText}
         type: VIEW_TYPE_TELEGRAM,
         active: true
       });
-      workspace.revealLeaf(leaf);
+      await workspace.revealLeaf(leaf);
     }
   }
   getActiveView() {
@@ -413,21 +414,24 @@ ${selectedText}
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile)
       return;
-    const vaultBasePath = this.app.vault.adapter.basePath;
-    const absolutePath = `${vaultBasePath}/${activeFile.path}`;
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof import_obsidian3.FileSystemAdapter))
+      return;
+    const absolutePath = `${adapter.getBasePath()}/${activeFile.path}`;
     const view = this.getActiveView();
     if (!view) {
       await this.activateView();
       const newView = this.getActiveView();
       if (newView) {
-        setTimeout(() => newView.insertTextToChat(absolutePath), 1e3);
+        window.setTimeout(() => void newView.insertTextToChat(absolutePath), 1e3);
       }
       return;
     }
-    view.insertTextToChat(absolutePath);
+    await view.insertTextToChat(absolutePath);
   }
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const data = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
   }
   async saveSettings() {
     await this.saveData(this.settings);

@@ -41,7 +41,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("e.g. moltbot")
+					.setPlaceholder("E.g. Moltbot")
 					.setValue(this.plugin.settings.telegramUsername)
 					.onChange(async (value) => {
 						this.plugin.settings.telegramUsername = value.trim().replace(/^@/, "");
@@ -54,8 +54,8 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 			.setDesc("K version is lightweight. A version is React-based with modern UI.")
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("k", "K (Lightweight)")
-					.addOption("a", "A (Modern React)")
+					.addOption("k", "K (lightweight)")
+					.addOption("a", "A (modern React)")
 					.setValue(this.plugin.settings.webVersion)
 					.onChange(async (value) => {
 						this.plugin.settings.webVersion = value as "k" | "a";
@@ -108,7 +108,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 				)
 				.addText((text) =>
 					text
-						.setPlaceholder("username (without @)")
+						.setPlaceholder("Username (without @)")
 						.setValue(tab.username)
 						.onChange(async (value) => {
 							this.plugin.settings.botTabs[index].username = value.trim().replace(/^@/, "");
@@ -126,7 +126,7 @@ export class TelegramSidebarSettingTab extends PluginSettingTab {
 		});
 
 		new Setting(containerEl).addButton((btn) =>
-			btn.setButtonText("Add Tab").setCta().onClick(async () => {
+			btn.setButtonText("Add tab").setCta().onClick(async () => {
 				this.plugin.settings.botTabs.push({ name: "", username: "" });
 				await this.plugin.saveSettings();
 				this.display();

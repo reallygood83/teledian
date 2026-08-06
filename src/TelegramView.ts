@@ -1,7 +1,24 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_TELEGRAM, TELEGRAM_WEB_K, TELEGRAM_WEB_A } from "./constants";
 import type TelegramSidebarPlugin from "./main";
 import type { BotTab } from "./settings";
+
+// Electron's <webview> tag isn't part of Obsidian's public API surface,
+// so we declare the slice of it this plugin actually calls.
+interface WebviewElement extends HTMLElement {
+	reload(): void;
+	loadURL(url: string): void;
+	executeJavaScript(code: string, userGesture?: boolean): Promise<unknown>;
+}
+
+interface WebviewFailLoadEvent extends Event {
+	errorCode: number;
+	errorDescription: string;
+}
+
+interface WebviewNewWindowEvent extends Event {
+	url: string;
+}
 
 interface WebviewEntry {
 	el: HTMLElement;
@@ -120,27 +137,30 @@ export class TelegramView extends ItemView {
 
 	private createWebview(username: string): HTMLElement {
 		const doc = this.contentEl.doc;
+		// Electron's <webview> isn't in HTMLElementTagNameMap, so it can't
+		// go through Obsidian's createEl() helper.
 		const webviewEl = doc.createElement("webview");
 
 		const url = this.buildUrlForUsername(username);
 		webviewEl.setAttribute("src", url);
 		webviewEl.setAttribute("allowpopups", "");
 		// persist partition with vault-specific appId to isolate sessions per vault
-		webviewEl.setAttribute("partition", `persist:telegram-sidebar-${(this.app as any).appId}`);
+		const appId = (this.app as unknown as { appId?: string }).appId;
+		webviewEl.setAttribute("partition", `persist:telegram-sidebar-${appId}`);
 		webviewEl.addClass("telegram-sidebar-webview");
 
-		webviewEl.addEventListener("did-fail-load" as any, (event: any) => {
+		webviewEl.addEventListener("did-fail-load", ((event: WebviewFailLoadEvent) => {
 			// errorCode -3 is ERR_ABORTED (expected during navigation)
 			if (event.errorCode !== -3) {
 				console.error("Telegram Sidebar: Failed to load", event.errorDescription);
 			}
-		});
+		}) as EventListener);
 
-		webviewEl.addEventListener("new-window" as any, (event: any) => {
+		webviewEl.addEventListener("new-window", ((event: WebviewNewWindowEvent) => {
 			if (event.url) {
 				window.open(event.url);
 			}
-		});
+		}) as EventListener);
 
 		webviewEl.addEventListener("destroyed", () => {
 			if (doc !== this.contentEl.doc) {
@@ -173,7 +193,7 @@ export class TelegramView extends ItemView {
 	reload(): void {
 		const webview = this.getActiveWebview();
 		if (webview) {
-			(webview as any).reload();
+			(webview as WebviewElement).reload();
 		}
 	}
 
@@ -181,7 +201,7 @@ export class TelegramView extends ItemView {
 		const webview = this.getActiveWebview();
 		if (webview) {
 			const url = this.buildUrlForUsername(username);
-			(webview as any).loadURL(url);
+			(webview as WebviewElement).loadURL(url);
 		}
 	}
 
@@ -207,18 +227,18 @@ export class TelegramView extends ItemView {
 				return true;
 			})();
 		`;
-		(webview as any).executeJavaScript(js, true);
+		await (webview as WebviewElement).executeJavaScript(js, true);
 	}
 
 	async getSelectedText(): Promise<string> {
 		const webview = this.getActiveWebview();
 		if (!webview) return "";
 		try {
-			const text = await (webview as any).executeJavaScript(
+			const text = await (webview as WebviewElement).executeJavaScript(
 				"window.getSelection().toString()",
 				true
 			);
-			return text || "";
+			return typeof text === "string" ? text : "";
 		} catch {
 			return "";
 		}
